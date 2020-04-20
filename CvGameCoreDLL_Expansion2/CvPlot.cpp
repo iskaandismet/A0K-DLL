@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	?1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -235,6 +235,9 @@ void CvPlot::reset(int iX, int iY, bool bConstructorCall)
 	m_bResourceLinkedCityActive = false;
 	m_bImprovedByGiftFromMajor = false;
 	m_bIsAdjacentToLand = false;
+	//aa0905766k//
+	m_bIsAdjacentToLuxury = false;
+	///
 	m_bIsImpassable = false;
 
 	m_eOwner = NO_PLAYER;
@@ -909,6 +912,36 @@ bool CvPlot::isAdjacentToLand() const
 
 	return false;
 }
+
+//aa0905766k////
+bool CvPlot::isAdjacentToLuxury() const
+{
+	CvPlot* pAdjacentPlot;
+	int iI;
+
+	for(iI = 0; iI < NUM_DIRECTION_TYPES; ++iI)
+	{
+		pAdjacentPlot = plotDirection(getX(), getY(), ((DirectionTypes)iI));
+
+		if(pAdjacentPlot != NULL)
+		{
+			if(pAdjacentPlot->getResourceType() != NO_RESOURCE)
+			{
+				CvResourceInfo *pkResourceInfo = GC.getResourceInfo(pAdjacentPlot->getResourceType());
+				if (pkResourceInfo && pkResourceInfo->getResourceUsage() == RESOURCEUSAGE_LUXURY)
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
+
+
+////
 
 //	--------------------------------------------------------------------------------
 bool CvPlot::isShallowWater() const
@@ -2400,6 +2433,31 @@ bool CvPlot::canBuild(BuildTypes eBuild, PlayerTypes ePlayer, bool bTestVisible,
 		}
 	}
 
+	//////////aa0905766k/////////////////
+	 ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
+	if(pkScriptSystem)
+	{
+	  CvLuaArgsHandle args;
+	  args->Push(ePlayer);
+	  args->Push(getX());
+	  args->Push(getY());
+	  args->Push(eBuild);
+	  // Attempt to execute the game events.
+	  // Will return false if there are no registered listeners.
+	  bool bResult = false;
+	  if(LuaSupport::CallTestAll(pkScriptSystem, "PlayerCanBuild", args.get(), bResult))
+	  {
+	   // Check the result.
+	   if(bResult == false)
+	   {
+	    return false;
+	   }
+	  }
+	 }
+
+
+
+	////////////////////////////////////
 	return bValid;
 }
 
@@ -7072,6 +7130,7 @@ int CvPlot::calculateImprovementYieldChange(ImprovementTypes eImprovement, Yield
 	int iBestYield;
 	int iYield;
 	int iI;
+	int iNewYieldValue;
 
 	CvImprovementEntry* pImprovement = GC.getImprovementInfo(eImprovement);
 	if (!pImprovement)
@@ -7133,7 +7192,52 @@ int CvPlot::calculateImprovementYieldChange(ImprovementTypes eImprovement, Yield
 			}
 		}
 	}
+	//aa0905766k//
+	if(pImprovement->GetAdjacentPastureYieldChange(eYield) > 0)
+	{
+		for(iI = 0; iI < NUM_DIRECTION_TYPES; ++iI)
+		{
+			CvPlot* pAdjacentPlot = plotDirection(getX(), getY(), ((DirectionTypes)iI));
 
+			if(pAdjacentPlot->getImprovementType() != NO_IMPROVEMENT)
+				{
+					if(pAdjacentPlot->getOwner() == getOwner())
+					{
+						if(pAdjacentPlot->getImprovementType() == (ImprovementTypes)(GC.getInfoTypeForString("IMPROVEMENT_PASTURE")))
+						{
+						iYield += pImprovement->GetAdjacentPastureYieldChange(eYield);
+						}
+					}
+				}
+			}
+	}
+	//aa0905766k//
+	if(pImprovement->GetAdjacentBonusResourceYieldChange(eYield) > 0)
+	{
+		for(iI = 0; iI < NUM_DIRECTION_TYPES; ++iI)
+		{
+			CvPlot* pAdjacentPlot = plotDirection(getX(), getY(), ((DirectionTypes)iI));
+
+			if(pAdjacentPlot->getResourceType() != NO_RESOURCE)
+				{
+					CvResourceInfo *pkResourceInfo = GC.getResourceInfo(pAdjacentPlot->getResourceType());
+					if (pkResourceInfo && pkResourceInfo->getResourceUsage() == RESOURCEUSAGE_BONUS)
+					{
+							iYield += pImprovement->GetAdjacentBonusResourceYieldChange(eYield);
+					}
+				}
+			}
+	}
+	//aa0905766k//
+	if(pImprovement->GetAdjacentLuxuryResourceYield(eYield) > 0)
+	{
+		if(isAdjacentToLuxury())
+		{
+			iYield += pImprovement->GetAdjacentLuxuryResourceYield(eYield);
+		}
+
+	}
+	//
 	if(bOptimal)
 	{
 		iYield += pImprovement->GetFreshWaterYieldChange(eYield);
@@ -7204,7 +7308,12 @@ int CvPlot::calculateImprovementYieldChange(ImprovementTypes eImprovement, Yield
 		iYield += kPlayer.getImprovementYieldChange(eImprovement, eYield);
 		iYield += kPlayer.GetPlayerTraits()->GetImprovementYieldChange(eImprovement, eYield);
 		iYield += kTeam.getImprovementYieldChange(eImprovement, eYield);
-
+		//aa0905766k//
+		if(isCoastalLand())
+		{
+		iYield += kPlayer.GetPlayerTraits()->GetImprovementCoastalLandYieldChanges(eImprovement, eYield);
+		}
+		//
 		if(bIsFreshWater)
 		{
 			iYield += kTeam.getImprovementFreshWaterYieldChange(eImprovement, eYield);
@@ -7245,6 +7354,30 @@ int CvPlot::calculateImprovementYieldChange(ImprovementTypes eImprovement, Yield
 			}
 		}
 	}
+	
+	//ImprovementTypes eImprovement, YieldTypes eYield, PlayerTypes ePlayer, bool bOptimal, RouteTypes eAssumeThisRoute//
+	//aa0905766k//
+	 ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
+	if(pkScriptSystem)
+	{
+	  CvLuaArgsHandle args;
+	  args->Push(ePlayer);
+	  args->Push(getX());
+	  args->Push(getY());
+	  args->Push(eImprovement);
+	  args->Push(eYield);
+	  // Attempt to execute the game events.
+	  // Will return false if there are no registered listeners.
+	  int iValue = 0;
+	  if(LuaSupport::CallAccumulator(pkScriptSystem, "ChangeImprovementYield", args.get(), iValue))
+	  {
+	   // Check the result.
+	   if(iValue > 0)
+	   {
+	     iYield += iValue;
+	   }
+	  }
+	 }
 
 	return iYield;
 }
@@ -7490,7 +7623,23 @@ int CvPlot::calculateYield(YieldTypes eYield, bool bDisplay)
 		{
 			if(iYield >= kYield.getGoldenAgeYieldThreshold())
 			{
-				iYield += kYield.getGoldenAgeYield();
+				
+				//orginal game code //
+
+				// iYield += kYield.getGoldenAgeYield();
+				//
+
+				//aa0905766k//
+				if(GET_PLAYER(ePlayer).GetPlayerTraits()->GetGoldenAgeBonusModifier() > 0)
+				{
+					iYield += kYield.getGoldenAgeYield()*((150+(GET_PLAYER(ePlayer).GetPlayerTraits()->GetGoldenAgeBonusModifier()))/100);
+				}
+				else
+				{
+
+					iYield += kYield.getGoldenAgeYield();
+				}
+				//
 			}
 		}
 	}
@@ -10218,7 +10367,23 @@ int CvPlot::getYieldWithBuild(BuildTypes eBuild, YieldTypes eYield, bool bWithUp
 		{
 			if(iYield >= kYield.getGoldenAgeYieldThreshold())
 			{
-				iYield += kYield.getGoldenAgeYield();
+				//original game code //
+				
+				// iYield += kYield.getGoldenAgeYield();
+				
+				//
+				//aa0905766k//
+				if(GET_PLAYER(ePlayer).GetPlayerTraits()->GetGoldenAgeBonusModifier() > 0)
+				{
+						iYield += kYield.getGoldenAgeYield()*((150+(GET_PLAYER(ePlayer).GetPlayerTraits()->GetGoldenAgeBonusModifier()))/100);
+
+				}
+				else
+				{
+
+					iYield += kYield.getGoldenAgeYield();
+				}
+				//
 			}
 		}
 	}

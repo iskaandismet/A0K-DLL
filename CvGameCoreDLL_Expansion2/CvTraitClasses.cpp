@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	?1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -56,6 +56,10 @@ CvTraitEntry::CvTraitEntry() :
 	m_iGoldenAgeGreatArtistRateModifier(0),
 	m_iGoldenAgeGreatMusicianRateModifier(0),
 	m_iGoldenAgeGreatWriterRateModifier(0),
+	//aa0905766k//
+	m_iGreatArtistRateModifier(0),
+	m_iGreatMerchantRateModifier(0),
+	//
 	m_iObsoleteTech(NO_TECH),
 	m_iPrereqTech(NO_TECH),
 	m_iExtraEmbarkMoves(0),
@@ -82,10 +86,23 @@ CvTraitEntry::CvTraitEntry() :
 	m_iTradeRouteResourceModifier(0),
 	m_iUniqueLuxuryCities(0),
 	m_iUniqueLuxuryQuantity(0),
-
+	/////////////////////////////////////////////////////////////////
+	/////////////////////aa0905766k//////////////////////////////////
+	m_CultureBombRadius(0),
+	m_GoldenAgeBonusModifier(0),
+	/////////////////////////////////////////////////////////////////
+	
 	m_eFreeUnitPrereqTech(NO_TECH),
 	m_eFreeBuilding(NO_BUILDING),
 	m_eFreeBuildingOnConquest(NO_BUILDING),
+
+	///////////////////////////////////////////////////////////////////	
+	////////////////////////aa0905766k/////////////////////////////////
+	///////////////////////////////////////////////////////////////////
+	m_eBuildCultureBomb(NO_BUILD),		
+	//////////////////////////////////////////////////////////////////
+
+
 
 	m_bFightWellDamaged(false),
 	m_bMoveFriendlyWoodsAsRoad(false),
@@ -115,6 +132,9 @@ CvTraitEntry::CvTraitEntry() :
 	m_piStrategicResourceQuantityModifier(NULL),
 	m_piResourceQuantityModifiers(NULL),
 	m_ppiImprovementYieldChanges(NULL),
+	//aa0905766k//
+	m_ppiImprovementCoastalLandYieldChanges(NULL),
+	//
 	m_ppiSpecialistYieldChanges(NULL),
 	m_ppiUnimprovedFeatureYieldChanges(NULL)
 {
@@ -124,6 +144,9 @@ CvTraitEntry::CvTraitEntry() :
 CvTraitEntry::~CvTraitEntry()
 {
 	CvDatabaseUtility::SafeDelete2DArray(m_ppiImprovementYieldChanges);
+	//aa0905766k//
+	CvDatabaseUtility::SafeDelete2DArray(m_ppiImprovementCoastalLandYieldChanges);
+	//
 	CvDatabaseUtility::SafeDelete2DArray(m_ppiSpecialistYieldChanges);
 	CvDatabaseUtility::SafeDelete2DArray(m_ppiUnimprovedFeatureYieldChanges);
 }
@@ -344,6 +367,18 @@ int CvTraitEntry::GetGoldenAgeGreatWriterRateModifier() const
 	return m_iGoldenAgeGreatWriterRateModifier;
 }
 
+
+//aa0905766k//
+int CvTraitEntry::GetGreatArtistRateModifier() const
+{
+	return m_iGreatArtistRateModifier;
+}
+int CvTraitEntry::GetGreatMerchantRateModifier() const
+{
+	return m_iGreatMerchantRateModifier;
+}
+//
+
 /// Accessor:: combat bonus during golden ages
 int CvTraitEntry::GetExtraEmbarkMoves() const
 {
@@ -482,7 +517,18 @@ int CvTraitEntry::GetUniqueLuxuryQuantity() const
 {
 	return m_iUniqueLuxuryQuantity;
 }
+/////////////////////////////////////////////////////////
+/////////////////////////aa0905766k//////////////////////
+int CvTraitEntry::GetCultureBombRadius() const
+{
+	return m_CultureBombRadius;
+}
 
+int CvTraitEntry::GetGoldenAgeBonusModifier() const
+{
+	return m_GoldenAgeBonusModifier;
+}
+/////////////////////////////////////////////////////////
 int CvTraitEntry::GetWorkerSpeedModifier() const
 {
 	return m_iWorkerSpeedModifier;
@@ -531,6 +577,14 @@ BuildingTypes CvTraitEntry::GetFreeBuildingOnConquest() const
 {
 	return m_eFreeBuildingOnConquest;
 }
+///////////////////////////////////////////////////////////////////	
+////////////////////////aa0905766k/////////////////////////////////
+///////////////////////////////////////////////////////////////////
+BuildTypes CvTraitEntry::GetBuildCultureBomb() const
+{
+	return m_eBuildCultureBomb;
+}
+//////////////////////////////////////////////////////////////////
 
 /// Accessor:: does this civ get combat bonuses when damaged?
 bool CvTraitEntry::IsFightWellDamaged() const
@@ -724,6 +778,17 @@ int CvTraitEntry::GetImprovementYieldChanges(ImprovementTypes eIndex1, YieldType
 	return m_ppiImprovementYieldChanges ? m_ppiImprovementYieldChanges[eIndex1][eIndex2] : 0;
 }
 
+//aa0905766k//
+int CvTraitEntry::GetImprovementCoastalLandYieldChanges(ImprovementTypes eIndex1, YieldTypes eIndex2) const
+{
+	CvAssertMsg(eIndex1 < GC.getNumImprovementInfos(), "Index out of bounds");
+	CvAssertMsg(eIndex1 > -1, "Index out of bounds");
+	CvAssertMsg(eIndex2 < NUM_YIELD_TYPES, "Index out of bounds");
+	CvAssertMsg(eIndex2 > -1, "Index out of bounds");
+	return m_ppiImprovementCoastalLandYieldChanges ? m_ppiImprovementCoastalLandYieldChanges[eIndex1][eIndex2] : 0;
+}
+
+//
 /// Accessor:: Extra yield from an improvement
 int CvTraitEntry::GetSpecialistYieldChanges(SpecialistTypes eIndex1, YieldTypes eIndex2) const
 {
@@ -889,6 +954,10 @@ bool CvTraitEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility& 
 	m_iGoldenAgeGreatArtistRateModifier		= kResults.GetInt("GoldenAgeGreatArtistRateModifier");
 	m_iGoldenAgeGreatMusicianRateModifier	= kResults.GetInt("GoldenAgeGreatMusicianRateModifier");
 	m_iGoldenAgeGreatWriterRateModifier		= kResults.GetInt("GoldenAgeGreatWriterRateModifier");
+	//aa0905766k//
+	m_iGreatArtistRateModifier				= kResults.GetInt("GreatArtistRateModifier");
+	m_iGreatMerchantRateModifier			= kResults.GetInt("GreatMerchantRateModifier");
+	//
 	m_iExtraEmbarkMoves						= kResults.GetInt("ExtraEmbarkMoves");
 	m_iNaturalWonderFirstFinderGold         = kResults.GetInt("NaturalWonderFirstFinderGold");
 	m_iNaturalWonderSubsequentFinderGold    = kResults.GetInt("NaturalWonderSubsequentFinderGold");
@@ -905,6 +974,12 @@ bool CvTraitEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility& 
 	m_iDOFGreatPersonModifier				= kResults.GetInt("DOFGreatPersonModifier");
 	m_iLuxuryHappinessRetention				= kResults.GetInt("LuxuryHappinessRetention");
 	m_iExtraSpies							= kResults.GetInt("ExtraSpies");
+	///////////////////////////////////////////////////////////////////////
+	////////////////////////aa0905766k/////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+	m_CultureBombRadius						= kResults.GetInt("CultureBombRadius");
+	m_GoldenAgeBonusModifier				= kResults.GetInt("GoldenAgeBonusModifier");
+	/////////////////////////////////////////////////////////////////////////
 	m_iUnresearchedTechBonusFromKills		= kResults.GetInt("UnresearchedTechBonusFromKills");
 	m_iExtraFoundedCityTerritoryClaimRange  = kResults.GetInt("ExtraFoundedCityTerritoryClaimRange");
 	m_iFreeSocialPoliciesPerEra				= kResults.GetInt("FreeSocialPoliciesPerEra");
@@ -960,6 +1035,17 @@ bool CvTraitEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility& 
 	{
 		m_eFreeBuildingOnConquest = (BuildingTypes)GC.getInfoTypeForString(szTextVal, true);
 	}
+	///////////////////////////////////////////////////////////////////
+	////////////////////////aa0905766k/////////////////////////////////
+	///////////////////////////////////////////////////////////////////
+	szTextVal = kResults.GetText("BuildCultureBomb");
+	if(szTextVal)
+	{
+		m_eBuildCultureBomb = (BuildTypes)GC.getInfoTypeForString(szTextVal, true);
+	}		
+	//////////////////////////////////////////////////////////////////
+
+
 
 	m_bFightWellDamaged = kResults.GetBool("FightWellDamaged");
 	m_bMoveFriendlyWoodsAsRoad = kResults.GetBool("MoveFriendlyWoodsAsRoad");
@@ -1122,6 +1208,30 @@ bool CvTraitEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility& 
 			m_ppiImprovementYieldChanges[ImprovementID][YieldID] = yield;
 		}
 	}
+
+	//aa0905766k//
+	{
+		kUtility.Initialize2DArray(m_ppiImprovementCoastalLandYieldChanges, "Improvements", "Yields");
+
+		std::string strKey("Trait_ImprovementCoastalLandYieldChanges");
+		Database::Results* pResults = kUtility.GetResults(strKey);
+		if(pResults == NULL)
+		{
+			pResults = kUtility.PrepareResults(strKey, "select Improvements.ID as ImprovementID, Yields.ID as YieldID, Yield from Trait_ImprovementCoastalLandYieldChanges inner join Improvements on Improvements.Type = ImprovementType inner join Yields on Yields.Type = YieldType where TraitType = ?");
+		}
+
+		pResults->Bind(1, szTraitType);
+
+		while(pResults->Step())
+		{
+			const int ImprovementID = pResults->GetInt(0);
+			const int YieldID = pResults->GetInt(1);
+			const int yield = pResults->GetInt(2);
+
+			m_ppiImprovementCoastalLandYieldChanges[ImprovementID][YieldID] = yield;
+		}
+	}
+	//
 
 	//SpecialistYieldChanges
 	{
@@ -1352,6 +1462,10 @@ void CvPlayerTraits::InitPlayerTraits()
 			m_iGoldenAgeGreatArtistRateModifier += trait->GetGoldenAgeGreatArtistRateModifier();
 			m_iGoldenAgeGreatMusicianRateModifier += trait->GetGoldenAgeGreatMusicianRateModifier();
 			m_iGoldenAgeGreatWriterRateModifier += trait->GetGoldenAgeGreatWriterRateModifier();
+			//aa0905766k//
+			m_iGreatArtistRateModifier += trait->GetGreatArtistRateModifier();
+			m_iGreatMerchantRateModifier += trait->GetGreatMerchantRateModifier();
+			//
 			m_iExtraEmbarkMoves += trait->GetExtraEmbarkMoves();
 			m_iNaturalWonderFirstFinderGold += trait->GetNaturalWonderFirstFinderGold();
 			m_iNaturalWonderSubsequentFinderGold += trait->GetNaturalWonderSubsequentFinderGold();
@@ -1368,6 +1482,12 @@ void CvPlayerTraits::InitPlayerTraits()
 			m_iDOFGreatPersonModifier += trait->GetDOFGreatPersonModifier();
 			m_iLuxuryHappinessRetention += trait->GetLuxuryHappinessRetention();
 			m_iExtraSpies += trait->GetExtraSpies();
+			/////////////////////////////////////////////////
+			///////////aa0905766k///////////////////////////
+			//////////////////////////////////////////////////
+			m_CultureBombRadius += trait->GetCultureBombRadius();
+			m_GoldenAgeBonusModifier += trait->GetGoldenAgeBonusModifier();
+			////////////////////////////////////////////////
 			m_iUnresearchedTechBonusFromKills += trait->GetUnresearchedTechBonusFromKills();
 			m_iExtraFoundedCityTerritoryClaimRange += trait->GetExtraFoundedCityTerritoryClaimRange();
 			m_iFreeSocialPoliciesPerEra += trait->GetFreeSocialPoliciesPerEra();
@@ -1496,6 +1616,19 @@ void CvPlayerTraits::InitPlayerTraits()
 					}
 				}
 
+				//aa0905766k//
+				for(int iCoastalImprovementLoop = 0; iCoastalImprovementLoop < GC.getNumImprovementInfos(); iCoastalImprovementLoop++)
+				{
+					int iChange = trait->GetImprovementCoastalLandYieldChanges((ImprovementTypes)iCoastalImprovementLoop, (YieldTypes)iYield);
+					if(iChange > 0)
+					{
+						Firaxis::Array<int, NUM_YIELD_TYPES> yields = m_ppaaiImprovementCoastalLandYieldChanges[iCoastalImprovementLoop];
+						yields[iYield] = (m_ppaaiImprovementCoastalLandYieldChanges[iCoastalImprovementLoop][iYield] + iChange);
+						m_ppaaiImprovementCoastalLandYieldChanges[iCoastalImprovementLoop] = yields;
+					}
+				}
+				//
+
 				for(int iSpecialistLoop = 0; iSpecialistLoop < GC.getNumSpecialistInfos(); iSpecialistLoop++)
 				{
 					int iChange = trait->GetSpecialistYieldChanges((SpecialistTypes)iSpecialistLoop, (YieldTypes)iYield);
@@ -1561,6 +1694,9 @@ void CvPlayerTraits::Uninit()
 	m_paiMaintenanceModifierUnitCombat.clear();
 	m_ppaaiImprovementYieldChange.clear();
 	m_ppaaiSpecialistYieldChange.clear();
+	//aa0905766k//
+	m_ppaaiImprovementCoastalLandYieldChanges.clear();
+	//
 	m_ppaaiUnimprovedFeatureYieldChange.clear();
 	m_aFreeResourceXCities.clear();
 }
@@ -1606,6 +1742,10 @@ void CvPlayerTraits::Reset()
 	m_iGoldenAgeGreatArtistRateModifier = 0;
 	m_iGoldenAgeGreatMusicianRateModifier = 0;
 	m_iGoldenAgeGreatWriterRateModifier = 0;
+	//aa0905766k//
+	m_iGreatArtistRateModifier = 0;
+	m_iGreatMerchantRateModifier = 0;
+	///
 	m_iExtraEmbarkMoves = 0;
 	m_iNaturalWonderFirstFinderGold = 0;
 	m_iNaturalWonderSubsequentFinderGold = 0;
@@ -1622,6 +1762,13 @@ void CvPlayerTraits::Reset()
 	m_iDOFGreatPersonModifier = 0;
 	m_iLuxuryHappinessRetention = 0;
 	m_iExtraSpies = 0;
+	//
+	//aa0905766k//
+	//
+	m_CultureBombRadius = 0;
+	m_GoldenAgeBonusModifier = 0;
+	//
+
 	m_iUnresearchedTechBonusFromKills = 0;
 	m_iExtraFoundedCityTerritoryClaimRange = 0;
 	m_iFreeSocialPoliciesPerEra = 0;
@@ -1660,6 +1807,10 @@ void CvPlayerTraits::Reset()
 
 	m_ppaaiImprovementYieldChange.clear();
 	m_ppaaiImprovementYieldChange.resize(GC.getNumImprovementInfos());
+	//aa0905766k//
+	m_ppaaiImprovementCoastalLandYieldChanges.clear();
+	m_ppaaiImprovementCoastalLandYieldChanges.resize(GC.getNumImprovementInfos());
+	//
 	m_ppaaiSpecialistYieldChange.clear();
 	m_ppaaiSpecialistYieldChange.resize(GC.getNumSpecialistInfos());
 	m_ppaaiUnimprovedFeatureYieldChange.clear();
@@ -1685,6 +1836,12 @@ void CvPlayerTraits::Reset()
 		{
 			m_ppaaiImprovementYieldChange[iImprovement] = yield;
 		}
+		//aa0905766k//
+		for(int iCoastalImprovement = 0; iCoastalImprovement < GC.getNumImprovementInfos(); iCoastalImprovement++)
+		{
+			m_ppaaiImprovementCoastalLandYieldChanges[iCoastalImprovement] = yield;
+		}
+		//
 		for(int iSpecialist = 0; iSpecialist < GC.getNumSpecialistInfos(); iSpecialist++)
 		{
 			m_ppaaiSpecialistYieldChange[iSpecialist] = yield;
@@ -1849,6 +2006,19 @@ int CvPlayerTraits::GetImprovementYieldChange(ImprovementTypes eImprovement, Yie
 	return m_ppaaiImprovementYieldChange[(int)eImprovement][(int)eYield];
 }
 
+///aa0905766k
+int CvPlayerTraits::GetImprovementCoastalLandYieldChanges(ImprovementTypes eImprovement, YieldTypes eYield) const
+{
+	CvAssertMsg(eImprovement < GC.getNumImprovementInfos(),  "Invalid eImprovement parameter in call to CvPlayerTraits::GetImprovementCoastalLandYieldChanges()");
+	CvAssertMsg(eYield < NUM_YIELD_TYPES,  "Invalid eYield parameter in call to CvPlayerTraits::GetImprovementCoastalLandYieldChanges()");
+
+	if(eImprovement == NO_IMPROVEMENT)
+	{
+		return 0;
+	}
+
+	return m_ppaaiImprovementCoastalLandYieldChanges[(int)eImprovement][(int)eYield];
+}
 /// Extra yield from this specialist
 int CvPlayerTraits::GetSpecialistYieldChange(SpecialistTypes eSpecialist, YieldTypes eYield) const
 {
@@ -1943,6 +2113,31 @@ BuildingTypes CvPlayerTraits::GetFreeBuildingOnConquest() const
 
 	return NO_BUILDING;
 }
+
+/////////////////////////////////////////////////////////
+//////////////////////////////////aa0905766k/////////////
+/////////////////////////////////////////////////////////
+BuildTypes CvPlayerTraits::GetBuildCultureBomb() const
+{
+	for(int iI = 0; iI < GC.getNumTraitInfos(); iI++)
+	{
+		const TraitTypes eTrait = static_cast<TraitTypes>(iI);
+		CvTraitEntry* pkTraitInfo = GC.getTraitInfo(eTrait);
+		if(pkTraitInfo)
+		{
+			if(HasTrait(eTrait))
+			{
+				if(pkTraitInfo->GetBuildCultureBomb())
+				{
+					return pkTraitInfo->GetBuildCultureBomb();
+				}
+			}
+		}
+	}
+
+	return NO_BUILD;
+}
+/////////////////////////////////////////////////////////
 
 /// Should unique luxuries appear beneath this tile?
 void CvPlayerTraits::AddUniqueLuxuries(CvCity *pCity)
@@ -2478,7 +2673,7 @@ void CvPlayerTraits::Read(FDataStream& kStream)
 	kStream >> m_iGreatScientistRateModifier;
 	kStream >> m_iGreatGeneralRateModifier;
 	kStream >> m_iGreatGeneralExtraBonus;
-
+	
 	kStream >> m_iGreatPersonGiftInfluence;
 
 	kStream >> m_iLevelExperienceModifier;
@@ -2542,6 +2737,11 @@ void CvPlayerTraits::Read(FDataStream& kStream)
 		m_iGoldenAgeGreatWriterRateModifier = 0;
 	}
 
+	//aa0905766k//
+	kStream >> m_iGreatArtistRateModifier;
+	kStream >> m_iGreatMerchantRateModifier;
+	//
+
 	kStream >> m_iExtraEmbarkMoves;
 
 	kStream >> m_iNaturalWonderFirstFinderGold;
@@ -2571,7 +2771,12 @@ void CvPlayerTraits::Read(FDataStream& kStream)
 	kStream >> m_iLuxuryHappinessRetention;
 
 	kStream >> m_iExtraSpies;
-
+	//////////////////////////////////////
+	/////////////////aa0905766k/////////
+	/////////////////////////////////////
+	kStream >> m_CultureBombRadius;
+	kStream >> m_GoldenAgeBonusModifier;
+	////////////////////////////////////
 	kStream >> m_iUnresearchedTechBonusFromKills;
 
 	if (uiVersion >= 4)
@@ -2824,6 +3029,9 @@ void CvPlayerTraits::Read(FDataStream& kStream)
 	}
 
 	kStream >> m_ppaaiImprovementYieldChange;
+	//aa0905766k//
+	kStream >> m_ppaaiImprovementCoastalLandYieldChanges;
+	//
 	kStream >> m_ppaaiSpecialistYieldChange;
 
 	kStream >> m_ppaaiUnimprovedFeatureYieldChange;
@@ -2892,6 +3100,10 @@ void CvPlayerTraits::Write(FDataStream& kStream)
 	kStream << m_iGoldenAgeGreatArtistRateModifier;
 	kStream << m_iGoldenAgeGreatMusicianRateModifier;
 	kStream << m_iGoldenAgeGreatWriterRateModifier;
+	//aa0905766k//
+	kStream << m_iGreatArtistRateModifier;
+	kStream << m_iGreatMerchantRateModifier;
+	//
 	kStream << m_iExtraEmbarkMoves;
 	kStream << m_iNaturalWonderFirstFinderGold;
 	kStream << m_iNaturalWonderSubsequentFinderGold;
@@ -2908,6 +3120,10 @@ void CvPlayerTraits::Write(FDataStream& kStream)
 	kStream << m_iDOFGreatPersonModifier;
 	kStream << m_iLuxuryHappinessRetention;
 	kStream << m_iExtraSpies;
+	////////////aa0905766k///////////
+	kStream << m_CultureBombRadius;
+	kStream << m_GoldenAgeBonusModifier;
+	////////////////
 	kStream << m_iUnresearchedTechBonusFromKills;
 	kStream << m_iExtraFoundedCityTerritoryClaimRange;
 	kStream << m_iFreeSocialPoliciesPerEra;
@@ -2992,6 +3208,9 @@ void CvPlayerTraits::Write(FDataStream& kStream)
 	}
 
 	kStream << m_ppaaiImprovementYieldChange;
+	//aa0905766k//
+	kStream << m_ppaaiImprovementCoastalLandYieldChanges;
+	//
 	kStream << m_ppaaiSpecialistYieldChange;
 	kStream << m_ppaaiUnimprovedFeatureYieldChange;
 

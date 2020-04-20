@@ -203,11 +203,27 @@ bool CvUnitMovement::ConsumesAllMoves(const CvUnit* pUnit, const CvPlot* pFromPl
 	// if the unit can embark and we are transitioning from land to water or vice versa
 	if(pToPlot->isWater() != pFromPlot->isWater() && pUnit->CanEverEmbark())
 	{
+
+		//original game code//
 		// Is the unit from a civ that can disembark for just 1 MP?
-		if(!pToPlot->isWater() && pFromPlot->isWater() && pUnit->isEmbarked() && GET_PLAYER(pUnit->getOwner()).GetPlayerTraits()->IsEmbarkedToLandFlatCost())
+		//	if(!pToPlot->isWater() && pFromPlot->isWater() && pUnit->isEmbarked() && GET_PLAYER(pUnit->getOwner()).GetPlayerTraits()->IsEmbarkedToLandFlatCost())
+		//	{
+		//		return false;	// Then no, it does not.
+		//	}
+		
+		//
+
+		//aa0905766k
+		if(!pToPlot->isWater() && pFromPlot->isWater() && pUnit->isEmbarked())
 		{
-			return false;	// Then no, it does not.
+
+			if(GET_PLAYER(pUnit->getOwner()).GetPlayerTraits()->IsEmbarkedToLandFlatCost() || pUnit->IsEmbarkedToLandFlatCost() )
+			{
+			
+			return false;
+			}			
 		}
+		//
 
 		if(!pUnit->canMoveAllTerrain())
 		{

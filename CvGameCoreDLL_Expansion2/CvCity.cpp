@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	?1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -9249,10 +9249,33 @@ int CvCity::getBaseYieldRateModifier(YieldTypes eIndex, int iExtra, CvString* to
 		CvYieldInfo* pYield = GC.getYieldInfo(eIndex);
 		if(pYield)
 		{
-			iTempMod = pYield->getGoldenAgeYieldMod();
-			iModifier += iTempMod;
-			if(toolTipSink)
-				GC.getGame().BuildProdModHelpText(toolTipSink, "TXT_KEY_PRODMOD_YIELD_GOLDEN_AGE", iTempMod);
+
+			//original game code//
+			//	iTempMod = pYield->getGoldenAgeYieldMod();
+			//	iModifier += iTempMod;
+			//	if(toolTipSink)
+			//		GC.getGame().BuildProdModHelpText(toolTipSink, "TXT_KEY_PRODMOD_YIELD_GOLDEN_AGE", iTempMod);
+
+			//
+
+			//aa0905766k//
+			
+			if(GET_PLAYER(getOwner()).GetPlayerTraits()->GetGoldenAgeBonusModifier() > 0)
+			{	
+				iTempMod = pYield->getGoldenAgeYieldMod() + pYield->getGoldenAgeYieldMod()*(GET_PLAYER(getOwner()).GetPlayerTraits()->GetGoldenAgeBonusModifier())/100;
+				iModifier += iTempMod;  
+				if(toolTipSink)
+					GC.getGame().BuildProdModHelpText(toolTipSink, "TXT_KEY_PRODMOD_YIELD_GOLDEN_AGE", iTempMod);
+			}
+			else
+			{
+				iTempMod = pYield->getGoldenAgeYieldMod();
+				iModifier += iTempMod;
+				if(toolTipSink)
+					GC.getGame().BuildProdModHelpText(toolTipSink, "TXT_KEY_PRODMOD_YIELD_GOLDEN_AGE", iTempMod);
+			}
+
+			//
 		}
 	}
 
@@ -11046,8 +11069,12 @@ void CvCity::BuyPlot(int iPlotX, int iPlotY)
 		CvLuaArgsHandle args;
 		args->Push(getOwner());
 		args->Push(GetID());
-		args->Push(plot()->getX());
-		args->Push(plot()->getY());
+		//args->Push(plot()->getX());
+		//args->Push(plot()->getY());
+		//bugfix
+		args->Push(iPlotX);
+		args->Push(iPlotY);
+
 		args->Push(true); // bGold
 		args->Push(false); // bFaith/bCulture
 

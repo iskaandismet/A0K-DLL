@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	?1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -154,6 +154,9 @@ CvUnit::CvUnit() :
 	, m_iMustSetUpToRangedAttackCount("CvUnit::m_iMustSetUpToRangedAttackCount", m_syncArchive)
 	, m_iRangeAttackIgnoreLOSCount("CvUnit::m_iRangeAttackIgnoreLOSCount", m_syncArchive)
 	, m_iCityAttackOnlyCount(0)
+	//aa0905766k//
+	, m_iUnitEmbarkedToLandFlatCostCount(0)
+	//
 	, m_iCaptureDefeatedEnemyCount(0)
 	, m_iRangedSupportFireCount("CvUnit::m_iRangedSupportFireCount", m_syncArchive)
 	, m_iAlwaysHealCount("CvUnit::m_iAlwaysHealCount", m_syncArchive)
@@ -753,6 +756,9 @@ void CvUnit::reset(int iID, UnitTypes eUnit, PlayerTypes eOwner, bool bConstruct
 	m_iMustSetUpToRangedAttackCount = 0;
 	m_iRangeAttackIgnoreLOSCount = 0;
 	m_iCityAttackOnlyCount = 0;
+	//aa0905766k//
+	m_iUnitEmbarkedToLandFlatCostCount = 0;
+	//
 	m_iCaptureDefeatedEnemyCount = 0;
 	m_iRangedSupportFireCount = 0;
 	m_iAlwaysHealCount = 0;
@@ -3926,6 +3932,27 @@ void CvUnit::ChangeCityAttackOnlyCount(int iChange)
 	}
 }
 
+
+//aa0905766k//
+
+bool CvUnit::IsEmbarkedToLandFlatCost() const
+{
+	VALIDATE_OBJECT
+	return m_iUnitEmbarkedToLandFlatCostCount > 0;
+}
+
+//	--------------------------------------------------------------------------------
+void CvUnit::ChangeEmbarkedToLandFlatCostCount(int iChange)
+{
+	VALIDATE_OBJECT
+	if(iChange != 0)
+	{
+		m_iUnitEmbarkedToLandFlatCostCount += iChange;
+	}
+}
+
+
+//
 //	--------------------------------------------------------------------------------
 bool CvUnit::IsCaptureDefeatedEnemy() const
 {
@@ -6529,7 +6556,8 @@ bool CvUnit::pillage()
 					}
 				}
 			}
-
+			
+			
 			//Unlock any possible achievements.
 			if(getOwner() == GC.getGame().getActivePlayer() && strcmp(pkImprovement->GetType(), "IMPROVEMENT_FARM") == 0)
 				CvAchievementUnlocker::FarmImprovementPillaged();
@@ -6550,6 +6578,23 @@ bool CvUnit::pillage()
 			{
 				jumpToNearestValidPlot();
 			}
+			//aa0905766k//
+			 ICvEngineScriptSystem1* pkScriptSystem = gDLL->GetScriptSystem();
+			if (pkScriptSystem)
+			{
+				CvLuaArgsHandle args;
+				args->Push(getOwner());
+				args->Push(GetID());
+				args->Push(pPlot->getX());
+				args->Push(pPlot->getY());
+
+				bool bResult;
+				LuaSupport::CallHook(pkScriptSystem, "UnitPillageTile", args.get(), bResult);
+			}
+			
+
+			//
+
 		}
 	}
 	else if(pPlot->isRoute())
@@ -8638,7 +8683,6 @@ bool CvUnit::canBuild(const CvPlot* pPlot, BuildTypes eBuild, bool bTestVisible,
 			}
 		}
 	}
-
 	return true;
 }
 
@@ -8726,6 +8770,13 @@ bool CvUnit::build(BuildTypes eBuild)
 					{
 						PerformCultureBomb(pkImprovementInfo->GetCultureBombRadius());
 					}
+					//////////////////////////////////////////////////////////
+					if (kPlayer.GetPlayerTraits()->GetBuildCultureBomb() == eBuild)
+					{
+						PerformCultureBomb(kPlayer.GetPlayerTraits()->GetCultureBombRadius());
+					}
+
+					/////////////////////////////////////////////////////////
 				}
 			}
 			else if(pkBuildInfo->getRoute() != NO_ROUTE)
@@ -17410,6 +17461,9 @@ void CvUnit::setHasPromotion(PromotionTypes eIndex, bool bNewValue)
 		changeFreePillageMoveCount((thisPromotion.IsFreePillageMoves()) ? iChange: 0);
 		ChangeEmbarkAllWaterCount((thisPromotion.IsEmbarkedAllWater()) ? iChange: 0);
 		ChangeCityAttackOnlyCount((thisPromotion.IsCityAttackOnly()) ? iChange: 0);
+		//aa0905766k//
+		ChangeEmbarkedToLandFlatCostCount((thisPromotion.IsEmbarkedToLandFlatCost()) ? iChange: 0);
+		//
 		ChangeCaptureDefeatedEnemyCount((thisPromotion.IsCaptureDefeatedEnemy()) ? iChange: 0);
 		ChangeCanHeavyChargeCount((thisPromotion.IsCanHeavyCharge()) ? iChange : 0);
 
@@ -17804,6 +17858,10 @@ void CvUnit::read(FDataStream& kStream)
 
 	kStream >> m_iCityAttackOnlyCount;
 
+	//aa0905766k//
+	kStream >> m_iUnitEmbarkedToLandFlatCostCount;
+	//
+
 	kStream >> m_iCaptureDefeatedEnemyCount;
 
 	kStream >> m_iGreatAdmiralCount;
@@ -17928,6 +17986,9 @@ void CvUnit::write(FDataStream& kStream) const
 	kStream << m_iCanHeavyCharge;
 	kStream << m_iNumExoticGoods;
 	kStream << m_iCityAttackOnlyCount;
+	//aa0905766k//
+	kStream << m_iUnitEmbarkedToLandFlatCostCount;
+	//
 	kStream << m_iCaptureDefeatedEnemyCount;
 	kStream << m_iGreatAdmiralCount;
 

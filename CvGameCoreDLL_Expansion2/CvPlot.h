@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	?1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -118,6 +118,10 @@ public:
 	bool isAdjacent(const CvPlot* pPlot) const;
 	bool isAdjacentToLand() const;
 	bool isAdjacentToLand_Cached() const { return m_bIsAdjacentToLand; }
+	//aa0905766k//
+	bool isAdjacentToLuxury() const;
+	bool isAdjacentToLuxury_Cached() const { return m_bIsAdjacentToLuxury; }
+	//
 	bool isShallowWater() const;
 	bool isAdjacentToShallowWater() const;
 	bool isCoastalLand(int iMinWaterSize = -1) const;
@@ -844,6 +848,9 @@ protected:
 	bool m_bResourceLinkedCityActive:1;
 	bool m_bImprovedByGiftFromMajor:1;
 	bool m_bIsAdjacentToLand:1;				// Cached value, do not serialize
+	//aa0905766k////
+	bool m_bIsAdjacentToLuxury:1;
+	////
 	bool m_bIsImpassable:1;					// Cached value, do not serialize
 
 	CvArchaeologyData m_kArchaeologyData;

@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	?1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -9323,7 +9323,20 @@ int CvPlayer::GetTotalJONSCulturePerTurn() const
 	// Golden Age bonus
 	if (isGoldenAge() && !IsGoldenAgeCultureBonusDisabled())
 	{
+		//original game code //
+		// iCulturePerTurn += ((iCulturePerTurn * GC.getGOLDEN_AGE_CULTURE_MODIFIER()) / 100);
+		//
+
+		//aa0905766k//
+		if (GetPlayerTraits()->GetGoldenAgeBonusModifier() > 0)
+		{
+		iCulturePerTurn += (iCulturePerTurn * (GC.getGOLDEN_AGE_CULTURE_MODIFIER() + (GC.getGOLDEN_AGE_CULTURE_MODIFIER() * GetPlayerTraits()->GetGoldenAgeBonusModifier()/100)) / 100);
+		}
+		else
+		{
 		iCulturePerTurn += ((iCulturePerTurn * GC.getGOLDEN_AGE_CULTURE_MODIFIER()) / 100);
+		}
+		//
 	}
 
 	return iCulturePerTurn;
@@ -12944,6 +12957,10 @@ void CvPlayer::recomputeGreatPeopleModifiers()
 	m_iGreatPeopleRateModifier += m_pTraits->GetGreatPeopleRateModifier();
 	m_iGreatGeneralRateModifier += m_pTraits->GetGreatGeneralRateModifier();
 	m_iGreatScientistRateModifier += m_pTraits->GetGreatScientistRateModifier();
+	//aa0905766k//
+	m_iGreatArtistRateModifier += m_pTraits->GetGreatArtistRateModifier();
+	m_iGreatMerchantRateModifier += m_pTraits->GetGreatMerchantRateModifier();
+	//
 
 	// Then get from current policies
 	m_iGreatPeopleRateModifier += m_pPlayerPolicies->GetNumericModifier(POLICYMOD_GREAT_PERSON_RATE);
